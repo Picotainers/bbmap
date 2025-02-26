@@ -14,6 +14,9 @@ RUN wget https://sourceforge.net/projects/bbmap/files/BBMap_${BBMAP_VERSION}.tar
 # Second stage: minimal runtime image
 FROM eclipse-temurin:11-jre-alpine
 
+# Install bash which is required by BBMap scripts
+RUN apk add --no-cache bash
+
 # Copy BBMap from the builder stage
 COPY --from=builder /bbmap /bbmap
 
@@ -27,16 +30,16 @@ RUN ls -la /bbmap && \
 # Create a working directory
 WORKDIR /data
 
-# Create a simpler entrypoint script
-RUN echo '#!/bin/sh' > /entrypoint.sh && \
+# Create an entrypoint script that uses bash
+RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'if [ "$1" = "" ]; then' >> /entrypoint.sh && \
-    echo '  exec sh /bbmap/bbmap.sh --help' >> /entrypoint.sh && \
+    echo '  exec bash /bbmap/bbmap.sh --help' >> /entrypoint.sh && \
     echo 'elif [ -f "/bbmap/$1" ]; then' >> /entrypoint.sh && \
     echo '  TOOL=$1' >> /entrypoint.sh && \
     echo '  shift' >> /entrypoint.sh && \
-    echo '  exec sh /bbmap/$TOOL $@' >> /entrypoint.sh && \
+    echo '  exec bash /bbmap/$TOOL "$@"' >> /entrypoint.sh && \
     echo 'else' >> /entrypoint.sh && \
-    echo '  exec sh /bbmap/bbmap.sh $@' >> /entrypoint.sh && \
+    echo '  exec bash /bbmap/bbmap.sh "$@"' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
