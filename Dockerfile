@@ -14,25 +14,34 @@ RUN wget https://sourceforge.net/projects/bbmap/files/BBMap_${BBMAP_VERSION}.tar
 # Second stage: minimal runtime image
 FROM eclipse-temurin:11-jre-alpine
 
-# Copy only the necessary files from the builder stage
+# Copy BBMap from the builder stage
 COPY --from=builder /bbmap /bbmap
 
 # Add BBMap to PATH
 ENV PATH="/bbmap:${PATH}"
 
+# Verify BBMap installation and file structure
+RUN ls -la /bbmap && \
+    find /bbmap -name "*.sh" -type f -exec chmod +x {} \;
+
 # Create a working directory
 WORKDIR /data
 
-# Create a wrapper script to allow running any BBMap tool
+# Create a simpler entrypoint script
 RUN echo '#!/bin/sh' > /entrypoint.sh && \
-    echo 'if [ -f "/bbmap/$1" ]; then' >> /entrypoint.sh && \
-    echo '  exec "/bbmap/$@"' >> /entrypoint.sh && \
+    echo 'if [ "$1" = "" ]; then' >> /entrypoint.sh && \
+    echo '  exec sh /bbmap/bbmap.sh --help' >> /entrypoint.sh && \
+    echo 'elif [ -f "/bbmap/$1" ]; then' >> /entrypoint.sh && \
+    echo '  TOOL=$1' >> /entrypoint.sh && \
+    echo '  shift' >> /entrypoint.sh && \
+    echo '  exec sh /bbmap/$TOOL $@' >> /entrypoint.sh && \
     echo 'else' >> /entrypoint.sh && \
-    echo '  exec "/bbmap/bbmap.sh" "$@"' >> /entrypoint.sh && \
+    echo '  exec sh /bbmap/bbmap.sh $@' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
+# Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
-# List available tools by default
-CMD ["bbmap.sh", "--help"]
+# Default command shows help
+CMD [""]
