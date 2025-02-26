@@ -1,0 +1,2 @@
+# bbmap
+Small bbmap container
